@@ -437,7 +437,7 @@ body{font-family:'JetBrains Mono',monospace;background:var(--bg0);color:var(--t0
 <script type="text/babel">
 const{useState,useEffect,useRef,useMemo,useCallback}=React;
 const COLORS=['#4d9fff','#a78bfa','#22d3ee','#00ff9d','#ff9f43','#ec4899','#ff5f5f','#84cc16'];
-const LAYER_COLORS={ui:'#4d9fff',components:'#22d3ee',services:'#a78bfa',utils:'#00ff9d',data:'#ff9f43',config:'#ec4899',test:'#f59e0b',modules:'#a78bfa',forms:'#22d3ee',classes:'#ff9f43'};
+const LAYER_COLORS={ui:'#4d9fff',components:'#22d3ee',services:'#a78bfa',utils:'#00ff9d',data:'#ff9f43',config:'#ec4899',test:'#f59e0b',modules:'#a78bfa',forms:'#22d3ee',classes:'#ff9f43',note:'#c084fc'};
 const IGNORE=new Set(['node_modules','.git','vendor','dist','build','__pycache__','.next','coverage','.venv','venv','env','.env','.tox','.mypy_cache','.pytest_cache','.ruff_cache','__pypackages__','.eggs']);
 const DEFAULT_EXCLUDE_CHIPS=['.git','node_modules','dist','build','coverage','__pycache__','.next','.venv','venv','.tox'];
 
@@ -580,6 +580,76 @@ const Parser={
     isHTML:function(n){return ['.html','.htm','.xhtml'].some(function(e){return n.toLowerCase().endsWith(e);});},
     isCSS:function(n){return ['.css','.scss','.sass','.less'].some(function(e){return n.toLowerCase().endsWith(e);});},
     isJSON:function(n){return ['.json'].some(function(e){return n.toLowerCase().endsWith(e);});},
+    isMarkdown:function(n){return ['.md','.markdown'].some(function(e){return n.toLowerCase().endsWith(e);});},
+    // Mirror of tests/md-extractors.mjs::extractMarkdownLinks. Keep in sync.
+    extractMarkdownLinks:function(content){
+        if(!content)return[];
+        var stripped=content.replace(/```[\s\S]*?```/g,'').replace(/`[^`\n]*`/g,'');
+        var links=[];
+        var wikiRe=/\[\[([^\]|#]+?)(?:#[^\]|]*)?(?:\|[^\]]+)?\]\]/g;
+        var m;
+        while((m=wikiRe.exec(stripped))!==null){
+            links.push({kind:'wikilink',raw:m[0],target:m[1].trim()});
+        }
+        var mdRe=/(!?)\[([^\]]*)\]\(([^)\s]+?)(?:\s+"[^"]*")?\)/g;
+        while((m=mdRe.exec(stripped))!==null){
+            if(m[1]==='!')continue;
+            var url=m[3].trim();
+            if(!url)continue;
+            if(/^(?:https?:|mailto:|ftp:|file:|tel:|#)/i.test(url))continue;
+            var clean=url.split('#')[0].split('?')[0];
+            if(!clean)continue;
+            links.push({kind:'mdlink',raw:m[0],target:url});
+        }
+        return links;
+    },
+    // Mirror of tests/md-extractors.mjs::resolveMarkdownLink. Keep in sync.
+    resolveMarkdownLink:function(rawTarget,fromPath,allPaths,kind){
+        if(!rawTarget)return null;
+        var allLower=allPaths.map(function(p){return p.toLowerCase();});
+        function findExact(candidate){
+            var c=candidate.toLowerCase();
+            var i=allLower.indexOf(c);
+            return i>=0?allPaths[i]:null;
+        }
+        function findWithMd(candidate){
+            var hit=findExact(candidate);
+            if(hit)return hit;
+            if(!/\.(md|markdown)$/i.test(candidate)){
+                return findExact(candidate+'.md');
+            }
+            return null;
+        }
+        if(kind==='mdlink'){
+            var cleanTarget=rawTarget.split('#')[0].split('?')[0];
+            var resolved;
+            if(cleanTarget.charAt(0)==='/'){
+                resolved=cleanTarget.slice(1);
+            }else{
+                var fromDir=fromPath.indexOf('/')>=0?fromPath.split('/').slice(0,-1).join('/'):'';
+                var parts=(fromDir?fromDir.split('/'):[]).concat(cleanTarget.split('/'));
+                var out=[];
+                for(var pi=0;pi<parts.length;pi++){
+                    var p=parts[pi];
+                    if(p===''||p==='.')continue;
+                    if(p==='..'){out.pop();continue;}
+                    out.push(p);
+                }
+                resolved=out.join('/');
+            }
+            var direct=findWithMd(resolved);
+            if(direct)return direct;
+        }
+        var baseName=rawTarget.split('#')[0].split('?')[0].split('/').pop();
+        if(!baseName)return null;
+        var target=/\.(md|markdown)$/i.test(baseName)?baseName:baseName+'.md';
+        var targetLower=target.toLowerCase();
+        for(var i=0;i<allPaths.length;i++){
+            var pname=allPaths[i].split('/').pop().toLowerCase();
+            if(pname===targetLower)return allPaths[i];
+        }
+        return null;
+    },
     detectLayer:function(p){
         var l=p.toLowerCase();
         // Test files
@@ -2690,6 +2760,25 @@ function App(){
                     await new Promise(function(r){setTimeout(r,0);});
                 }
                 Object.values(fnStats).forEach(function(s){s.callers=Array.from(s.callers.values());s.count=s.internal+s.external;});
+                // Phase 2.5: Resolve markdown/wiki links into graph edges
+                setProgress('Resolving markdown links...');
+                await new Promise(function(r){setTimeout(r,0);});
+                var mdAllPaths=analyzed.map(function(f){return f.path;});
+                analyzed.forEach(function(file){
+                    if(!Parser.isMarkdown(file.name)||!file.content)return;
+                    var links=Parser.extractMarkdownLinks(file.content);
+                    var deps=[];
+                    links.forEach(function(link){
+                        var resolved=Parser.resolveMarkdownLink(link.target,file.path,mdAllPaths,link.kind);
+                        deps.push({kind:link.kind,raw:link.raw,target:link.target,resolved:resolved});
+                        if(resolved&&resolved!==file.path){
+                            conns.push({source:file.path,target:resolved,fn:link.raw,count:1,kind:link.kind});
+                        }
+                    });
+                    file.dependencies=deps;
+                    file.layer='note';
+                });
+                analyzed.forEach(function(f){if(!f.dependencies)f.dependencies=[];});
                 var issues=[];
                 // Only flag truly unused functions with language-aware filtering
                 // Understands Python decorators, framework conventions, magic methods, etc.
@@ -2976,6 +3065,25 @@ function App(){
                 await new Promise(function(r){setTimeout(r,0);});
             }
             Object.values(fnStats).forEach(function(s){s.callers=Array.from(s.callers.values());s.count=s.internal+s.external;});
+            // Phase 2.5: Resolve markdown/wiki links into graph edges
+            setProgress('Resolving markdown links...');
+            await new Promise(function(r){setTimeout(r,0);});
+            var mdAllPaths=analyzed.map(function(f){return f.path;});
+            analyzed.forEach(function(file){
+                if(!Parser.isMarkdown(file.name)||!file.content)return;
+                var links=Parser.extractMarkdownLinks(file.content);
+                var deps=[];
+                links.forEach(function(link){
+                    var resolved=Parser.resolveMarkdownLink(link.target,file.path,mdAllPaths,link.kind);
+                    deps.push({kind:link.kind,raw:link.raw,target:link.target,resolved:resolved});
+                    if(resolved&&resolved!==file.path){
+                        conns.push({source:file.path,target:resolved,fn:link.raw,count:1,kind:link.kind});
+                    }
+                });
+                file.dependencies=deps;
+                file.layer='note';
+            });
+            analyzed.forEach(function(f){if(!f.dependencies)f.dependencies=[];});
             var issues=[];
             var deadFns=Object.entries(fnStats).filter(function(x){
                 var name=x[0],stats=x[1];
@@ -3879,7 +3987,7 @@ function App(){
         d3.select(svgRef.current).transition().duration(400).call(zoomRef.current.transform,d3.zoomIdentity.translate(w/2-scale*(minX+maxX)/2,h/2-scale*(minY+maxY)/2).scale(Math.min(scale,2)));
     }
     function exportSVG(){if(!svgRef.current)return;var svgClone=svgRef.current.cloneNode(true);svgClone.setAttribute('xmlns','http://www.w3.org/2000/svg');svgClone.setAttribute('width',svgRef.current.clientWidth);svgClone.setAttribute('height',svgRef.current.clientHeight);var style=document.createElementNS('http://www.w3.org/2000/svg','style');style.textContent='text{font-family:JetBrains Mono,monospace;pointer-events:none}';svgClone.insertBefore(style,svgClone.firstChild);var blob=new Blob([new XMLSerializer().serializeToString(svgClone)],{type:'image/svg+xml'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='codeflow-'+Date.now()+'.svg';a.click();URL.revokeObjectURL(url);}
-    function exportJSON(){if(!data)return;var blob=new Blob([JSON.stringify({stats:data.stats,files:data.files.map(function(f){return{path:f.path,fns:f.functions.length,layer:f.layer,lines:f.lines};}),connections:data.connections,issues:data.issues,patterns:data.patterns,security:data.securityIssues},null,2)],{type:'application/json'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='codeflow-analysis.json';a.click();}
+    function exportJSON(){if(!data)return;var blob=new Blob([JSON.stringify({stats:data.stats,files:data.files.map(function(f){return{path:f.path,fns:f.functions.length,layer:f.layer,lines:f.lines,dependencies:f.dependencies||[]};}),connections:data.connections,issues:data.issues,patterns:data.patterns,security:data.securityIssues},null,2)],{type:'application/json'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='codeflow-analysis.json';a.click();}
     function generateReport(format){
         if(!data)return;
         var repo=repoInfo?(localDirHandle?'Local Folder':repoInfo.owner+'/'+repoInfo.repo):'Unknown Repository';
