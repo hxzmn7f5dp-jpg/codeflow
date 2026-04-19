@@ -71,6 +71,9 @@ Color files by commit frequency to see which parts of your codebase are most act
 ### 📋 **PR Impact Analysis**
 Paste a PR URL to see exactly which files it affects and calculate the blast radius of proposed changes.
 
+### 📝 **Markdown & Wiki-Link Graph**
+Point CodeFlow at an Obsidian vault or any markdown directory to see notes as a connected graph. Both `[[wiki-links]]` and `[text](./relative.md)` links become edges; each note is a `note`-layer node (distinct color) with a `dependencies[]` array in the JSON export.
+
 ### 💻 **Local File Analysis**
 Analyze code directly from your computer without uploading to GitHub:
 - **Privacy First:** Your code never leaves your machine
@@ -306,6 +309,14 @@ We love contributions! Here's how:
 2. Make your changes to `index.html`
 3. Test locally (just open in browser)
 4. Submit a PR
+
+If you're editing the markdown / wiki-link parser, Node.js unit tests live under `tests/` and run with no dependencies:
+
+```bash
+node --test tests/
+```
+
+`tests/verify-brain-vault.mjs` is an optional end-to-end script that runs the extractor pipeline against a local markdown vault (set `BRAIN_VAULT=/path/to/vault` or edit the default).
 
 ### Ideas for Contributions
 - [ ] Add support for more languages

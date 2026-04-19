@@ -584,14 +584,14 @@ const Parser={
     // Mirror of tests/md-extractors.mjs::extractMarkdownLinks. Keep in sync.
     extractMarkdownLinks:function(content){
         if(!content)return[];
-        var stripped=content.replace(/```[\s\S]*?```/g,'').replace(/`[^`\n]*`/g,'');
+        var stripped=content.replace(/```[\s\S]*?```/g,'').replace(/~~~[\s\S]*?~~~/g,'').replace(/`[^`\n]*`/g,'');
         var links=[];
         var wikiRe=/\[\[([^\]|#]+?)(?:#[^\]|]*)?(?:\|[^\]]+)?\]\]/g;
         var m;
         while((m=wikiRe.exec(stripped))!==null){
             links.push({kind:'wikilink',raw:m[0],target:m[1].trim()});
         }
-        var mdRe=/(!?)\[([^\]]*)\]\(([^)\s]+?)(?:\s+"[^"]*")?\)/g;
+        var mdRe=/(!?)\[((?:[^\[\]]|\[[^\[\]]*\])*)\]\(([^)\s]+?)(?:\s+"[^"]*")?\)/g;
         while((m=mdRe.exec(stripped))!==null){
             if(m[1]==='!')continue;
             var url=m[3].trim();
@@ -2765,7 +2765,9 @@ function App(){
                 await new Promise(function(r){setTimeout(r,0);});
                 var mdAllPaths=analyzed.map(function(f){return f.path;});
                 analyzed.forEach(function(file){
-                    if(!Parser.isMarkdown(file.name)||!file.content)return;
+                    if(!Parser.isMarkdown(file.name))return;
+                    file.layer='note';
+                    if(!file.content)return;
                     var links=Parser.extractMarkdownLinks(file.content);
                     var deps=[];
                     links.forEach(function(link){
@@ -2776,7 +2778,6 @@ function App(){
                         }
                     });
                     file.dependencies=deps;
-                    file.layer='note';
                 });
                 analyzed.forEach(function(f){if(!f.dependencies)f.dependencies=[];});
                 var issues=[];

@@ -4,9 +4,10 @@
 
 export function extractMarkdownLinks(content) {
   if (!content) return [];
-  // Strip fenced code blocks and inline code so links inside code don't count.
+  // Strip fenced code blocks (backtick + tilde) and inline code.
   const stripped = content
     .replace(/```[\s\S]*?```/g, '')
+    .replace(/~~~[\s\S]*?~~~/g, '')
     .replace(/`[^`\n]*`/g, '');
   const links = [];
 
@@ -18,9 +19,10 @@ export function extractMarkdownLinks(content) {
     links.push({ kind: 'wikilink', raw: m[0], target: m[1].trim() });
   }
 
-  // Markdown link: [text](url "optional title")
+  // Markdown link: [text](url "optional title").
+  // Text may contain one level of nested brackets: [foo [bar] baz](url).
   // Reject external schemes, anchor-only, and image links (preceded by `!`).
-  const mdRe = /(!?)\[([^\]]*)\]\(([^)\s]+?)(?:\s+"[^"]*")?\)/g;
+  const mdRe = /(!?)\[((?:[^\[\]]|\[[^\[\]]*\])*)\]\(([^)\s]+?)(?:\s+"[^"]*")?\)/g;
   while ((m = mdRe.exec(stripped)) !== null) {
     if (m[1] === '!') continue; // image
     const url = m[3].trim();

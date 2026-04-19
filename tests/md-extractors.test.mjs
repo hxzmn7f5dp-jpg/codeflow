@@ -96,3 +96,24 @@ test('resolveMarkdownLink falls back to basename when relative path misses', () 
   const resolved = resolveMarkdownLink('target-note', 'other.md', paths, 'wikilink');
   assert.equal(resolved, 'deep/nested/target-note.md');
 });
+
+test('extractMarkdownLinks handles nested brackets in mdlink text', () => {
+  // Obsidian renders [foo [bar] baz](./target-note.md) as one link.
+  const links = extractMarkdownLinks('Ref: [foo [bar] baz](./target-note.md).');
+  const mdlinks = links.filter(l => l.kind === 'mdlink');
+  assert.equal(mdlinks.length, 1);
+  assert.equal(mdlinks[0].target, './target-note.md');
+});
+
+test('extractMarkdownLinks strips tilde-fenced code blocks', () => {
+  const content = 'Keep: [[real]].\n~~~\n[[skip-tilde]]\n~~~\n';
+  const links = extractMarkdownLinks(content);
+  assert.equal(links.length, 1);
+  assert.equal(links[0].target, 'real');
+});
+
+test('resolveMarkdownLink handles absolute path mdlinks', () => {
+  const paths = ['docs/intro.md', 'readme.md'];
+  const resolved = resolveMarkdownLink('/docs/intro.md', 'readme.md', paths, 'mdlink');
+  assert.equal(resolved, 'docs/intro.md');
+});
