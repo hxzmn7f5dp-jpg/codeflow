@@ -310,10 +310,15 @@ We love contributions! Here's how:
 3. Test locally (just open in browser)
 4. Submit a PR
 
-If you're editing the markdown / wiki-link parser, Node.js unit tests live under `tests/` and run with no dependencies:
+Node.js unit tests live under `tests/` and run with no dependencies. They cover
+the markdown / wiki-link parser **and** the blast-radius / impact-analysis and
+circular-dependency logic, with `sync-*.test.mjs` tests asserting the reference
+copies stay equivalent to the implementations shipped inside `index.html`:
 
 ```bash
-node --test tests/
+npm test
+# or directly:
+node --test "tests/**/*.test.mjs"
 ```
 
 `tests/verify-brain-vault.mjs` is an optional end-to-end script that runs the extractor pipeline against a local markdown vault (set `BRAIN_VAULT=/path/to/vault` or edit the default).
