@@ -1,0 +1,11 @@
+{
+  "name": "codeflow",
+  "version": "1.0.0",
+  "description": "Visualize your codebase architecture in seconds — single-file browser SPA.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test \"tests/**/*.test.mjs\""
+  },
+  "license": "MIT"
+}
