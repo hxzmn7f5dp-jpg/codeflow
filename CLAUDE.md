@@ -84,3 +84,5 @@ Do **not** commit directly to `main`. Earlier history also carries `braedonsaund
 focused chunks; before pushing, run `npm test` (CI runs it too, but it's the human gate) and
 — for anything visual — actually open `index.html` in a browser and look at the rendered
 result, since CI only covers the JS logic, not the rendered UI.
+
+Doc-only `claude/*` PRs (every changed file `*.md`) auto-squash-merge once mergeable via `.github/workflows/auto-merge-docs.yml`; code PRs are merged by hand once `npm test` is green.

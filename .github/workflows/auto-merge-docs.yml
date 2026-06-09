@@ -1,0 +1,94 @@
+name: auto-merge-docs
+
+# Auto-merge claude/* PRs that change ONLY Markdown (every file *.md): squash-merge
+# as soon as the PR is mergeable. Docs don't run the test suite, so there is no CI
+# gate — the PR page records the change and the branch-and-PR ceremony is recovered.
+#
+# Any non-.md file in the PR → treated as a code change and SKIPPED (left open for
+# the normal review/merge flow). FAILS CLOSED: merge conflicts, an unknown mergeable
+# state, or any uncertainty skip the merge and leave the PR open. Worst case is "a
+# doc PR that could have auto-merged didn't," never "a conflicting PR merged."
+#
+# Ported from brain-vault's auto-merge-docs.yml (doc-only tier only — the code tier
+# there gates on a `pytest` check that doesn't generalize across toolchains).
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, reopened]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    name: Auto-merge claude doc-only PRs
+    runs-on: ubuntu-latest
+    # Fast no-op for drafts and non-claude branches.
+    if: |
+      github.event.pull_request.draft == false &&
+      startsWith(github.head_ref, 'claude/')
+    steps:
+      # `gh` infers the repo from the checked-out remote, so a checkout is required
+      # even though every step is a pure API call (without it `gh pr view` errors
+      # "not a git repository" and the workflow red-fails on every claude PR).
+      - name: Check out (gh repo context)
+        uses: actions/checkout@v4
+
+      - name: Classify changed files
+        id: detect
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pr_number="${{ github.event.pull_request.number }}"
+          files=$(gh pr view "$pr_number" --json files -q '.files[].path')
+          if [ -z "$files" ]; then
+            echo "::notice::PR #$pr_number reports no changed files; skipping"
+            echo "class=skip" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "Files changed in PR #$pr_number:"
+          echo "$files" | sed 's/^/  /'
+          non_md=$(echo "$files" | grep -vE '\.md$' || true)
+          if [ -z "$non_md" ]; then
+            echo "::notice::PR #$pr_number is doc-only"
+            echo "class=doc" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::PR #$pr_number touches non-markdown files; leaving for manual/normal merge"
+            echo "$non_md" | sed 's/^/  /'
+            echo "class=skip" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check mergeable state
+        id: mergeable
+        if: steps.detect.outputs.class == 'doc'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pr_number="${{ github.event.pull_request.number }}"
+          # GitHub takes a moment to compute mergeable state. Poll with backoff.
+          for i in 1 2 3 4 5; do
+            state=$(gh pr view "$pr_number" --json mergeable -q '.mergeable')
+            echo "Attempt $i: mergeable=$state"
+            if [ "$state" = "MERGEABLE" ]; then
+              echo "ok=true" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+            if [ "$state" = "CONFLICTING" ]; then
+              echo "::warning::PR #$pr_number has merge conflicts; skipping auto-merge"
+              echo "ok=false" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+            sleep $((i * 3))
+          done
+          echo "::warning::PR #$pr_number mergeable state unknown after 5 attempts; skipping"
+          echo "ok=false" >> "$GITHUB_OUTPUT"
+
+      - name: Merge doc-only PR (squash)
+        if: |
+          steps.detect.outputs.class == 'doc' &&
+          steps.mergeable.outputs.ok == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          pr_number="${{ github.event.pull_request.number }}"
+          echo "::notice::Auto-squash-merging doc-only PR #$pr_number"
+          gh pr merge "$pr_number" --squash --delete-branch
