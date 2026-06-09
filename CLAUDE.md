@@ -36,8 +36,9 @@ npm test          # node --test "tests/**/*.test.mjs"
 ```
 
 Requires a Node with the built-in test runner (Node 18+). The suite is **30 tests across the
-files below** and currently passes clean. There is no lint or format script, no TypeScript, no
-CI workflow in this repo (`.github/` is absent).
+files below** and currently passes clean. There is no lint or format script and no TypeScript.
+CI (`.github/workflows/ci.yml`) runs `npm test` on Node 22 for every push to `main` and every
+PR — checkout → setup-node → `npm test`, no install since the suite is dependency-free.
 
 `tests/verify-brain-vault.mjs` is an optional, manual end-to-end script (not part of `npm test`):
 it runs the extractor against a real markdown vault via `BRAIN_VAULT=/path/to/vault`.
@@ -80,5 +81,6 @@ update the README's "Supported Languages" table to stay accurate.
 `claude/*` branch and land via PR to `main` (e.g. `Merge pull request #3 … claude/test-coverage-analysis`).
 Do **not** commit directly to `main`. Earlier history also carries `braedonsaunders/*` and
 `codex/*` PR branches from the upstream project this was mirrored from. Commit in small,
-focused chunks; before pushing, run `npm test` and — for anything visual — actually open
-`index.html` in a browser and look at the rendered result, since there's no automated UI check.
+focused chunks; before pushing, run `npm test` (CI runs it too, but it's the human gate) and
+— for anything visual — actually open `index.html` in a browser and look at the rendered
+result, since CI only covers the JS logic, not the rendered UI.
