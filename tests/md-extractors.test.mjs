@@ -112,6 +112,21 @@ test('extractMarkdownLinks strips tilde-fenced code blocks', () => {
   assert.equal(links[0].target, 'real');
 });
 
+test('extractMarkdownLinks returns [] for null or empty content', () => {
+  assert.deepEqual(extractMarkdownLinks(null), []);
+  assert.deepEqual(extractMarkdownLinks(undefined), []);
+  assert.deepEqual(extractMarkdownLinks(''), []);
+});
+
+test('extractMarkdownLinks rejects ftp/file/tel schemes alongside http and mailto', () => {
+  const content = '[a](ftp://x/y) [b](file:///etc/hosts) [c](tel:+1555) [keep](./real.md)';
+  const links = extractMarkdownLinks(content);
+  // Only the relative ./real.md survives the scheme filter.
+  assert.equal(links.length, 1);
+  assert.equal(links[0].kind, 'mdlink');
+  assert.equal(links[0].target, './real.md');
+});
+
 test('resolveMarkdownLink handles absolute path mdlinks', () => {
   const paths = ['docs/intro.md', 'readme.md'];
   const resolved = resolveMarkdownLink('/docs/intro.md', 'readme.md', paths, 'mdlink');

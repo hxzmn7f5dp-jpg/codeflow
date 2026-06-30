@@ -72,6 +72,90 @@ test('calcBlast: severity level escalates with number of direct dependents', () 
   assert.equal(med.level, 'medium');
 });
 
+test('calcBlast: severity level escalates by functions-used independently of dependent count', () => {
+  // A file with a single direct dependent but many consumed functions is still
+  // critical/high — the level OR-arm (fnsUsed) must fire on its own.
+  const files = ['f.js', 'g.js'].map((p) => ({ path: p, functions: [] }));
+  const fiveFnConns = ['a', 'b', 'c', 'd', 'e'].map((fn) => ({ source: 'f.js', target: 'g.js', fn, count: 1 }));
+  const five = calcBlast('f.js', fiveFnConns, files);
+  assert.equal(five.count, 1, 'only one direct dependent');
+  assert.equal(five.fnsUsed, 5);
+  assert.equal(five.level, 'critical', 'fnsUsed >= 5 is critical even with 1 dependent');
+
+  const three = calcBlast('f.js', fiveFnConns.slice(0, 3), files);
+  assert.equal(three.count, 1);
+  assert.equal(three.fnsUsed, 3);
+  assert.equal(three.level, 'high', 'fnsUsed >= 3 is high even with 1 dependent');
+
+  const one = calcBlast('f.js', fiveFnConns.slice(0, 1), files);
+  assert.equal(one.fnsUsed, 1);
+  assert.equal(one.level, 'medium', 'fnsUsed >= 1 (with <2 dependents) is medium');
+});
+
+test('calcBlast: transitive BFS is capped at depth 3', () => {
+  // Chain A -> B -> C -> D -> E -> F (each file imports the next).
+  // Blast of F should reach E(1), D(2), C(3) but NOT B(4) or A(5): the BFS
+  // continues past depth 3 without recording deeper dependents.
+  const files = ['A', 'B', 'C', 'D', 'E', 'F'].map((p) => ({ path: p + '.js', functions: [] }));
+  const chain = [
+    { source: 'B.js', target: 'A.js', fn: 'f', count: 1 },
+    { source: 'C.js', target: 'B.js', fn: 'f', count: 1 },
+    { source: 'D.js', target: 'C.js', fn: 'f', count: 1 },
+    { source: 'E.js', target: 'D.js', fn: 'f', count: 1 },
+    { source: 'F.js', target: 'E.js', fn: 'f', count: 1 },
+  ];
+  const f = calcBlast('F.js', chain, files);
+  assert.deepStrictEqual(f.affected, ['E.js'], 'only E directly imports F');
+  assert.deepStrictEqual(f.transitive.sort(), ['C.js', 'D.js', 'E.js']);
+  assert.equal(f.transitiveCount, 3, 'B (depth 4) and A (depth 5) are beyond the cap');
+  assert.equal(f.depth, 3, 'deepest recorded transitive dependent is depth 3');
+});
+
+test('calcBlast: impactScore applies 1/depth decay to transitive dependents', () => {
+  // F's blast (capped chain above): 1 (direct E) + 0.5 (D@2) + 0.33 (C@3)
+  // = 1.83, rounded to one decimal => 1.8.
+  const files = ['A', 'B', 'C', 'D', 'E', 'F'].map((p) => ({ path: p + '.js', functions: [] }));
+  const chain = [
+    { source: 'B.js', target: 'A.js', fn: 'f', count: 1 },
+    { source: 'C.js', target: 'B.js', fn: 'f', count: 1 },
+    { source: 'D.js', target: 'C.js', fn: 'f', count: 1 },
+    { source: 'E.js', target: 'D.js', fn: 'f', count: 1 },
+    { source: 'F.js', target: 'E.js', fn: 'f', count: 1 },
+  ];
+  const f = calcBlast('F.js', chain, files);
+  assert.equal(f.impactScore, 1.8);
+});
+
+test('calcBlast: centrality sums direct dependents, dependencies, and functions used', () => {
+  // h.js: imported by a.js + b.js (2 direct deps), imports from dep.js (1
+  // dependency), exposes 2 consumed functions => centrality = 2 + 1 + 2 = 5.
+  const files = ['h.js', 'a.js', 'b.js', 'dep.js'].map((p) => ({ path: p, functions: [] }));
+  const conns2 = [
+    { source: 'h.js', target: 'a.js', fn: 'f1', count: 1 },
+    { source: 'h.js', target: 'b.js', fn: 'f2', count: 3 },
+    { source: 'dep.js', target: 'h.js', fn: 'x', count: 1 },
+  ];
+  const h = calcBlast('h.js', conns2, files);
+  assert.equal(h.count, 2);
+  assert.deepStrictEqual(h.dependencies, ['dep.js']);
+  assert.equal(h.fnsUsed, 2);
+  assert.equal(h.totalCalls, 4, 'f1 (1) + f2 (3)');
+  assert.equal(h.centrality, 5);
+});
+
+test('calcBlast: percent is direct dependents over connected files', () => {
+  // 4 files participate in connections (h, a, b, dep); h has 2 direct
+  // dependents => round(2 / 4 * 100) = 50.
+  const files = ['h.js', 'a.js', 'b.js', 'dep.js'].map((p) => ({ path: p, functions: [] }));
+  const conns2 = [
+    { source: 'h.js', target: 'a.js', fn: 'f1', count: 1 },
+    { source: 'h.js', target: 'b.js', fn: 'f2', count: 1 },
+    { source: 'dep.js', target: 'h.js', fn: 'x', count: 1 },
+  ];
+  const h = calcBlast('h.js', conns2, files);
+  assert.equal(h.percent, 50);
+});
+
 test('calcBlast: object-shaped edge endpoints are unwrapped via .id', () => {
   const f = ['x.js', 'y.js'].map((p) => ({ path: p, functions: [] }));
   const c = [{ source: { id: 'x.js' }, target: { id: 'y.js' }, fn: 'fn', count: 1 }];
