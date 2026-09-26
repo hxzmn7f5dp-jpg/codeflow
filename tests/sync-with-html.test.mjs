@@ -55,6 +55,7 @@ const cases = [
   { content: 'See [[target-note]] and [[foo|bar]] and [[baz#h]].' },
   { content: 'Link: [click](./target-note.md) and image ![x](./y.png) and [g](https://g.com).' },
   { content: 'Nested: [foo [bar] baz](./target-note.md).' },
+  { content: 'Angle: [a](<target note.md>) [b](<./x y.md> "t") [c](<https://g.com/a b>) ![d](<p q.png>).' },
   { content: 'Fences:\n```\n[[skip-a]]\n```\n~~~\n[[skip-b]]\n~~~\n`[[skip-c]]` Real: [[keep]].' },
 ];
 
