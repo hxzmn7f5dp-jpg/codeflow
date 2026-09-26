@@ -85,7 +85,19 @@ function objectEdges() {
   };
 }
 
-const fixtures = { chain, hub, cycle, objectEdges };
+// Note links (kind set) are stored linker -> linked; calcBlast flips them.
+function notes() {
+  const files = [{ path: 'a.md' }, { path: 'b.md' }, { path: 'hub.md' }, { path: 'x.js' }, { path: 'y.js' }];
+  const conns = [
+    { source: 'a.md', target: 'hub.md', fn: '[[hub]]', count: 1, kind: 'wikilink' },
+    { source: 'b.md', target: 'hub.md', fn: '[b](hub.md)', count: 1, kind: 'mdlink' },
+    { source: 'hub.md', target: 'a.md', fn: '[[a]]', count: 1, kind: 'wikilink' },
+    { source: 'x.js', target: 'y.js', fn: 'f', count: 2 },
+  ];
+  return { files, conns };
+}
+
+const fixtures = { chain, hub, cycle, objectEdges, notes };
 
 test('index.html calcBlast matches tests/blast.mjs across graph shapes', () => {
   for (const [name, make] of Object.entries(fixtures)) {

@@ -11,14 +11,14 @@ The whole application is **`index.html`** (~5,100 lines). There is no bundler, n
 `node_modules`, no framework scaffolding. React 18, ReactDOM, Babel-standalone (JSX is
 transpiled in the browser), D3 7 + d3-sankey, Acorn, web-tree-sitter, and jsrsasign are all
 loaded from CDNs via `<script>` tags (`index.html:19-26`). The app code lives in a single
-`<script type="text/babel">` block (`index.html:437-5097`).
+`<script type="text/babel">` block (`index.html:437-5100`).
 
 ## Layout
 
 - `index.html` — the entire app. Key regions: the `Parser` object (`index.html:544`) holding
   extension tables (`codeExts`/`textExts`/`binExts`) and the language/link/AST extraction
   helpers; the top-level `calcBlast` function (`index.html:2218`); and the `App` React
-  component (`index.html:2471`) with the GitHub scan path (`processFile`) and the Local Files
+  component (`index.html:2474`) with the GitHub scan path (`processFile`) and the Local Files
   scan path — two near-identical orchestrators that must be kept in step.
 - `tests/` — Node's built-in `node --test` suite (`.test.mjs`), zero dependencies.
 - `tests/fixtures/vault/` — small markdown fixtures for the wiki-link parser.
@@ -35,7 +35,7 @@ or a `file://` URL) and the app runs. `package.json` defines exactly one script:
 npm test          # node --test "tests/**/*.test.mjs"
 ```
 
-Requires a Node with the built-in test runner (Node 18+). The suite is **41 tests across the
+Requires a Node with the built-in test runner (Node 18+). The suite is **43 tests across the
 files below** and currently passes clean. There is no lint or format script and no TypeScript.
 CI (`.github/workflows/ci.yml`) runs `npm test` on Node 22 for every push to `main` and every
 PR — checkout → setup-node → `npm test`, no install since the suite is dependency-free.
@@ -62,7 +62,10 @@ copy, the `tests/*.mjs` reference, and (if behavior changes) the `*.test.mjs` ca
 
 Edge/connection format throughout: `{source, target, fn, count}` where an edge means `target`
 imports/uses something from `source`; a file's *dependents* are edges where it is the `source`.
-Markdown notes add `kind: 'wikilink'|'mdlink'` and live on the `note` layer.
+Markdown notes add `kind: 'wikilink'|'mdlink'` and live on the `note` layer. Note edges are
+stored the other way round (`source` = the note containing the link, `target` = the linked note),
+so `calcBlast` flips any edge with a `kind` before building adjacency, and circular-dependency
+detection ignores note edges (two notes linking to each other is not a cycle).
 
 ## Conventions
 

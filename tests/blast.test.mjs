@@ -208,3 +208,28 @@ test('detectCircular: unwraps object-shaped edge endpoints', () => {
   ];
   assert.deepStrictEqual(detectCircular(cyc), ['A.js|B.js']);
 });
+
+// Note links are stored linker -> linked ({source: A, target: B} for "A links
+// to B"), the reverse of code edges. Blast radius must still answer "what is
+// affected if I change B?" — i.e. the notes that link TO B.
+test('calcBlast: a note\'s dependents are the notes that link to it', () => {
+  const conns = [
+    { source: 'a.md', target: 'hub.md', fn: '[[hub]]', count: 1, kind: 'wikilink' },
+    { source: 'b.md', target: 'hub.md', fn: '[b](hub.md)', count: 1, kind: 'mdlink' },
+  ];
+  const files = [{ path: 'a.md' }, { path: 'b.md' }, { path: 'hub.md' }];
+  const hub = calcBlast('hub.md', conns, files);
+  assert.deepEqual(hub.affected.sort(), ['a.md', 'b.md']);
+  assert.deepEqual(hub.dependencies, []);
+  const a = calcBlast('a.md', conns, files);
+  assert.deepEqual(a.affected, []);
+  assert.deepEqual(a.dependencies, ['hub.md']);
+});
+
+test('detectCircular: two notes linking to each other are not a circular dependency', () => {
+  const conns = [
+    { source: 'a.md', target: 'b.md', fn: '[[b]]', count: 1, kind: 'wikilink' },
+    { source: 'b.md', target: 'a.md', fn: '[[a]]', count: 1, kind: 'wikilink' },
+  ];
+  assert.deepEqual(detectCircular(conns), []);
+});

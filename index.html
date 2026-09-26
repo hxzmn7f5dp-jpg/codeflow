@@ -2227,6 +2227,9 @@ function calcBlast(fileId,conns,files){
     conns.forEach(function(c){
         var src=typeof c.source==='object'?c.source.id:c.source;
         var tgt=typeof c.target==='object'?c.target.id:c.target;
+        // Note links are stored linker -> linked, the reverse of code edges;
+        // flip them so the linked note is the one others depend on.
+        if(c.kind){var t=src;src=tgt;tgt=t;}
         // src exports, tgt imports
         if(!exportedTo[src])exportedTo[src]=new Set();
         exportedTo[src].add(tgt);
@@ -2826,9 +2829,9 @@ function App(){
                 conns.forEach(function(c){coupling[c.target]=(coupling[c.target]||0)+1;});
                 var highCoup=Object.entries(coupling).filter(function(x){return x[1]>8;}).sort(function(a,b){return b[1]-a[1];});
                 if(highCoup.length)issues.push({type:'warning',title:highCoup.length+' Highly Coupled',desc:'Files imported by 8+ others',items:highCoup.map(function(x){return{name:x[0].split('/').pop()+' ('+x[1]+' imports)',file:x[0],imports:x[1]};})});
-                var connSet=new Set(conns.map(function(c){return c.source+'|'+c.target;}));
+                var codeConns=conns.filter(function(c){return !c.kind;});/* note links: mutual links are not cycles */var connSet=new Set(codeConns.map(function(c){return c.source+'|'+c.target;}));
                 var circular=[];
-                conns.forEach(function(c){if(connSet.has(c.target+'|'+c.source)){var key=[c.source,c.target].sort().join('|');if(!circular.includes(key))circular.push(key);}});
+                codeConns.forEach(function(c){if(connSet.has(c.target+'|'+c.source)){var key=[c.source,c.target].sort().join('|');if(!circular.includes(key))circular.push(key);}});
                 if(circular.length)issues.push({type:'critical',title:circular.length+' Circular Dependencies',desc:'Files that import each other',items:circular.map(function(p){var parts=p.split('|');return{name:parts.map(function(x){return x.split('/').pop();}).join(' ↔ '),files:parts};})});
 
                 // Phase 3: Pattern and security detection with yielding
@@ -3123,9 +3126,9 @@ function App(){
             conns.forEach(function(c){coupling[c.target]=(coupling[c.target]||0)+1;});
             var highCoup=Object.entries(coupling).filter(function(x){return x[1]>8;}).sort(function(a,b){return b[1]-a[1];});
             if(highCoup.length)issues.push({type:'warning',title:highCoup.length+' Highly Coupled',desc:'Files imported by 8+ others',items:highCoup.map(function(x){return{name:x[0].split('/').pop()+' ('+x[1]+' imports)',file:x[0],imports:x[1]};})});
-            var connSet=new Set(conns.map(function(c){return c.source+'|'+c.target;}));
+            var codeConns=conns.filter(function(c){return !c.kind;});/* note links: mutual links are not cycles */var connSet=new Set(codeConns.map(function(c){return c.source+'|'+c.target;}));
             var circular=[];
-            conns.forEach(function(c){if(connSet.has(c.target+'|'+c.source)){var key=[c.source,c.target].sort().join('|');if(!circular.includes(key))circular.push(key);}});
+            codeConns.forEach(function(c){if(connSet.has(c.target+'|'+c.source)){var key=[c.source,c.target].sort().join('|');if(!circular.includes(key))circular.push(key);}});
             if(circular.length)issues.push({type:'critical',title:circular.length+' Circular Dependencies',desc:'Files that import each other',items:circular.map(function(p){var parts=p.split('|');return{name:parts.map(function(x){return x.split('/').pop();}).join(' ↔ '),files:parts};})});
 
             // Phase 3: Pattern and security detection with yielding

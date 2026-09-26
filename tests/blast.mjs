@@ -19,6 +19,9 @@ export function calcBlast(fileId, conns, files) {
     conns.forEach(function (c) {
         var src = typeof c.source === 'object' ? c.source.id : c.source;
         var tgt = typeof c.target === 'object' ? c.target.id : c.target;
+        // Note links are stored linker -> linked, the reverse of code edges;
+        // flip them so the linked note is the one others depend on.
+        if (c.kind) { var t = src; src = tgt; tgt = t; }
         // src exports, tgt imports
         if (!exportedTo[src]) exportedTo[src] = new Set();
         exportedTo[src].add(tgt);
@@ -96,8 +99,11 @@ export function calcBlast(fileId, conns, files) {
 // Detect circular dependencies among the connection edges, mirroring the inline
 // logic in index.html's analysis pipeline (see the `connSet` / `circular` block).
 // A cycle is a pair of files that import from each other (A->B and B->A).
+// Note-link edges (those with a `kind`) are ignored.
 // Returns a sorted array of "a|b" keys (each pair canonicalized, deduped).
 export function detectCircular(conns) {
+    // Notes linking to each other is normal, not a dependency cycle.
+    conns = conns.filter(function (c) { return !c.kind; });
     var connSet = new Set();
     conns.forEach(function (c) {
         var src = typeof c.source === 'object' ? c.source.id : c.source;
