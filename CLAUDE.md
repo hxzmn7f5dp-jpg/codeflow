@@ -35,7 +35,7 @@ or a `file://` URL) and the app runs. `package.json` defines exactly one script:
 npm test          # node --test "tests/**/*.test.mjs"
 ```
 
-Requires a Node with the built-in test runner (Node 18+). The suite is **43 tests across the
+Requires a Node with the built-in test runner (Node 18+). The suite is **44 tests across the
 files below** and currently passes clean. There is no lint or format script and no TypeScript.
 CI (`.github/workflows/ci.yml`) runs `npm test` on Node 22 for every push to `main` and every
 PR — checkout → setup-node → `npm test`, no install since the suite is dependency-free.
