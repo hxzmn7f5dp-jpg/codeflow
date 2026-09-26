@@ -196,14 +196,14 @@ CodeFlow extracts functions and analyzes dependencies for these extensions (the 
 | Svelte | `.svelte` |
 | Rust | `.rs` |
 | C | `.c`, `.h` |
-| C++ | `.cpp`, `.cc`, `.hpp` |
+| C++ | `.cpp`, `.cc`, `.cxx`, `.hpp`, `.hh`, `.hxx` |
 | C# | `.cs` |
 | Swift | `.swift` |
 | Kotlin | `.kt`, `.kts` |
-| Scala | `.scala` |
-| Groovy | `.groovy`, `.gradle` |
+| Scala | `.scala`, `.sc` |
+| Groovy | `.groovy`, `.gvy`, `.gradle` |
 | Elixir | `.ex`, `.exs` |
-| Erlang | `.erl` |
+| Erlang | `.erl`, `.hrl` |
 | Haskell | `.hs` |
 | Lua | `.lua` |
 | R | `.r`, `.R` |
@@ -212,9 +212,9 @@ CodeFlow extracts functions and analyzes dependencies for these extensions (the 
 | Perl | `.pl`, `.pm` |
 | Shell | `.sh`, `.bash`, `.zsh`, `.fish` |
 | PowerShell | `.ps1`, `.psm1` |
-| F# | `.fs`, `.fsx` |
-| OCaml | `.ml` |
-| Clojure | `.clj` |
+| F# | `.fs`, `.fsi`, `.fsx` |
+| OCaml | `.ml`, `.mli` |
+| Clojure | `.clj`, `.cljs`, `.cljc` |
 | Elm | `.elm` |
 | VBA | `.vba`, `.bas`, `.cls`, `.xlsm`, `.xlsb`, `.xlam`, `.xla`, `.xlw` |
 
