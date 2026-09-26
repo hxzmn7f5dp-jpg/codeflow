@@ -144,3 +144,17 @@ test('resolveMarkdownLink tolerates malformed percent-encoding instead of throwi
   const all = ['notes/100%.md'];
   assert.equal(resolveMarkdownLink('100%.md', 'notes/a.md', all, 'mdlink'), 'notes/100%.md');
 });
+
+test('extractMarkdownLinks reads angle-bracket destinations with spaces: [x](<My Note.md>)', () => {
+  const links = extractMarkdownLinks('See [x](<My Note.md>) and [y](<sub/Other Note.md> "title").');
+  assert.deepEqual(links.map(l => l.target), ['My Note.md', 'sub/Other Note.md']);
+  assert.equal(
+    resolveMarkdownLink(links[0].target, 'notes/a.md', ['notes/My Note.md', 'notes/a.md'], 'mdlink'),
+    'notes/My Note.md'
+  );
+});
+
+test('extractMarkdownLinks still skips angle-bracket externals and images', () => {
+  const links = extractMarkdownLinks('[g](<https://g.com/a b>) ![i](<pic one.png>)');
+  assert.deepEqual(links, []);
+});

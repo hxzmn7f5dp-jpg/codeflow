@@ -19,13 +19,13 @@ export function extractMarkdownLinks(content) {
     links.push({ kind: 'wikilink', raw: m[0], target: m[1].trim() });
   }
 
-  // Markdown link: [text](url "optional title").
+  // Markdown link: [text](url "optional title") or [text](<url with spaces>).
   // Text may contain one level of nested brackets: [foo [bar] baz](url).
   // Reject external schemes, anchor-only, and image links (preceded by `!`).
-  const mdRe = /(!?)\[((?:[^\[\]]|\[[^\[\]]*\])*)\]\(([^)\s]+?)(?:\s+"[^"]*")?\)/g;
+  const mdRe = /(!?)\[((?:[^\[\]]|\[[^\[\]]*\])*)\]\((?:<([^>\n]+)>|([^)\s]+?))(?:\s+"[^"]*")?\)/g;
   while ((m = mdRe.exec(stripped)) !== null) {
     if (m[1] === '!') continue; // image
-    const url = m[3].trim();
+    const url = (m[3] || m[4]).trim(); // m[3]: <angle dest>, may hold spaces
     if (!url) continue;
     if (/^(?:https?:|mailto:|ftp:|file:|tel:|#)/i.test(url)) continue;
     const clean = url.split('#')[0].split('?')[0];
