@@ -606,6 +606,11 @@ const Parser={
     // Mirror of tests/md-extractors.mjs::resolveMarkdownLink. Keep in sync.
     resolveMarkdownLink:function(rawTarget,fromPath,allPaths,kind){
         if(!rawTarget)return null;
+        // Markdown-link URLs are percent-encoded (Obsidian writes spaces as %20);
+        // decode so they match real filenames. Malformed escapes stay as written.
+        if(kind==='mdlink'){
+            try{rawTarget=decodeURIComponent(rawTarget);}catch(e){/* keep raw */}
+        }
         var allLower=allPaths.map(function(p){return p.toLowerCase();});
         function findExact(candidate){
             var c=candidate.toLowerCase();

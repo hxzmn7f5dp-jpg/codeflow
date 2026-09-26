@@ -132,3 +132,15 @@ test('resolveMarkdownLink handles absolute path mdlinks', () => {
   const resolved = resolveMarkdownLink('/docs/intro.md', 'readme.md', paths, 'mdlink');
   assert.equal(resolved, 'docs/intro.md');
 });
+
+test('resolveMarkdownLink decodes percent-encoded md-link targets (Obsidian writes spaces as %20)', () => {
+  const all = ['notes/My Note.md', 'notes/a.md'];
+  assert.equal(resolveMarkdownLink('My%20Note.md', 'notes/a.md', all, 'mdlink'), 'notes/My Note.md');
+  assert.equal(resolveMarkdownLink('./My%20Note', 'notes/a.md', all, 'mdlink'), 'notes/My Note.md');
+  assert.equal(resolveMarkdownLink('other/My%20Note.md#h', 'notes/a.md', all, 'mdlink'), 'notes/My Note.md');
+});
+
+test('resolveMarkdownLink tolerates malformed percent-encoding instead of throwing', () => {
+  const all = ['notes/100%.md'];
+  assert.equal(resolveMarkdownLink('100%.md', 'notes/a.md', all, 'mdlink'), 'notes/100%.md');
+});
