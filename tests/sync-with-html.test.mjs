@@ -73,6 +73,8 @@ const resolveCases = [
   ['/docs/intro.md', 'note.md', 'mdlink'],
   ['does-not-exist', 'note.md', 'wikilink'],
   ['../nested/target-note.md', 'deep/other.md', 'mdlink'],
+  ['target%2Dnote.md', 'note.md', 'mdlink'],
+  ['100%.md', 'note.md', 'mdlink'],
 ];
 test('index.html resolveMarkdownLink matches tests/md-extractors.mjs', () => {
   for (const [t, f, k] of resolveCases) {

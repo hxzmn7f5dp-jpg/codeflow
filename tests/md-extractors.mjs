@@ -37,6 +37,11 @@ export function extractMarkdownLinks(content) {
 
 export function resolveMarkdownLink(rawTarget, fromPath, allPaths, kind) {
   if (!rawTarget) return null;
+  // Markdown-link URLs are percent-encoded (Obsidian writes spaces as %20);
+  // decode so they match real filenames. Malformed escapes stay as written.
+  if (kind === 'mdlink') {
+    try { rawTarget = decodeURIComponent(rawTarget); } catch (e) { /* keep raw */ }
+  }
   const allLower = allPaths.map(p => p.toLowerCase());
 
   function findExact(candidate) {

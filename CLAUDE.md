@@ -11,14 +11,14 @@ The whole application is **`index.html`** (~5,100 lines). There is no bundler, n
 `node_modules`, no framework scaffolding. React 18, ReactDOM, Babel-standalone (JSX is
 transpiled in the browser), D3 7 + d3-sankey, Acorn, web-tree-sitter, and jsrsasign are all
 loaded from CDNs via `<script>` tags (`index.html:19-26`). The app code lives in a single
-`<script type="text/babel">` block (`index.html:437-5092`).
+`<script type="text/babel">` block (`index.html:437-5097`).
 
 ## Layout
 
 - `index.html` — the entire app. Key regions: the `Parser` object (`index.html:544`) holding
   extension tables (`codeExts`/`textExts`/`binExts`) and the language/link/AST extraction
-  helpers; the top-level `calcBlast` function (`index.html:2213`); and the `App` React
-  component (`index.html:2466`) with the GitHub scan path (`processFile`) and the Local Files
+  helpers; the top-level `calcBlast` function (`index.html:2218`); and the `App` React
+  component (`index.html:2471`) with the GitHub scan path (`processFile`) and the Local Files
   scan path — two near-identical orchestrators that must be kept in step.
 - `tests/` — Node's built-in `node --test` suite (`.test.mjs`), zero dependencies.
 - `tests/fixtures/vault/` — small markdown fixtures for the wiki-link parser.
@@ -35,7 +35,7 @@ or a `file://` URL) and the app runs. `package.json` defines exactly one script:
 npm test          # node --test "tests/**/*.test.mjs"
 ```
 
-Requires a Node with the built-in test runner (Node 18+). The suite is **30 tests across the
+Requires a Node with the built-in test runner (Node 18+). The suite is **39 tests across the
 files below** and currently passes clean. There is no lint or format script and no TypeScript.
 CI (`.github/workflows/ci.yml`) runs `npm test` on Node 22 for every push to `main` and every
 PR — checkout → setup-node → `npm test`, no install since the suite is dependency-free.
@@ -53,7 +53,7 @@ edit the other** — the headers in those files say so, and `sync-*` tests enfor
   mirror `tests/md-extractors.mjs`. `tests/sync-with-html.test.mjs` extracts the method bodies
   from `index.html` via a brace-matching slicer, runs them in a `vm` sandbox, and asserts the
   output matches the reference for shared fixtures.
-- `calcBlast` and `detectCircular` (`index.html:2213`) mirror `tests/blast.mjs`.
+- `calcBlast` and `detectCircular` (`index.html:2218`) mirror `tests/blast.mjs`.
   `tests/sync-blast-with-html.test.mjs` does the same structural comparison.
 
 So a change to blast-radius or link-parsing logic is a **three-file edit**: the `index.html`
