@@ -181,13 +181,13 @@ Click the 📤 Export button in the top bar after analysis to access all export 
 
 ## Supported Languages
 
-CodeFlow extracts functions and analyzes dependencies for:
+CodeFlow extracts functions and analyzes dependencies for these extensions (the list matches `Parser.codeExts` in `index.html`):
 
 | Language | Extensions |
 |----------|------------|
-| JavaScript | `.js`, `.jsx` |
+| JavaScript | `.js`, `.jsx`, `.mjs`, `.cjs` |
 | TypeScript | `.ts`, `.tsx` |
-| Python | `.py` |
+| Python | `.py`, `.pyw`, `.pyi` |
 | Java | `.java` |
 | Go | `.go` |
 | Ruby | `.rb` |
@@ -196,27 +196,27 @@ CodeFlow extracts functions and analyzes dependencies for:
 | Svelte | `.svelte` |
 | Rust | `.rs` |
 | C | `.c`, `.h` |
-| C++ | `.cpp`, `.cc`, `.cxx`, `.hpp`, `.hh`, `.hxx` |
+| C++ | `.cpp`, `.cc`, `.hpp` |
 | C# | `.cs` |
 | Swift | `.swift` |
 | Kotlin | `.kt`, `.kts` |
-| Scala | `.scala`, `.sc` |
-| Groovy | `.groovy`, `.gvy` |
+| Scala | `.scala` |
+| Groovy | `.groovy`, `.gradle` |
 | Elixir | `.ex`, `.exs` |
-| Erlang | `.erl`, `.hrl` |
-| Haskell | `.hs`, `.lhs` |
+| Erlang | `.erl` |
+| Haskell | `.hs` |
 | Lua | `.lua` |
 | R | `.r`, `.R` |
 | Julia | `.jl` |
 | Dart | `.dart` |
 | Perl | `.pl`, `.pm` |
 | Shell | `.sh`, `.bash`, `.zsh`, `.fish` |
-| PowerShell | `.ps1`, `.psm1`, `.psd1` |
-| F# | `.fs`, `.fsi`, `.fsx` |
-| OCaml | `.ml`, `.mli` |
-| Clojure | `.clj`, `.cljs`, `.cljc` |
+| PowerShell | `.ps1`, `.psm1` |
+| F# | `.fs`, `.fsx` |
+| OCaml | `.ml` |
+| Clojure | `.clj` |
 | Elm | `.elm` |
-| VBA | `.vba`, `.bas`, `.cls`, `.xlsm`, `.xlsb`, `.xlam` |
+| VBA | `.vba`, `.bas`, `.cls`, `.xlsm`, `.xlsb`, `.xlam`, `.xla`, `.xlw` |
 
 ---
 
