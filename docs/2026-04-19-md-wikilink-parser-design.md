@@ -111,3 +111,4 @@ Because the parser lives inside a `<script>` tag in a single HTML file, the test
 - Reference-style links (`[text][id]` with `[id]: url` elsewhere).
 - Frontmatter parsing.
 - Transitive blast radius across note edges (the existing blast logic will just pick them up because they're in `conns`).
+  *Update 2026-09-26:* it didn't, quite — blast logic reads `source` as the depended-on file, so note edges came out reversed and mutual links were flagged as circular dependencies. `calcBlast` now flips edges with a `kind`, and circular detection skips them.
